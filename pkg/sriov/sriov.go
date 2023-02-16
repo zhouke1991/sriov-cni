@@ -312,6 +312,16 @@ func (s *sriovManager) ApplyVFConfig(conf *sriovtypes.NetConf) error {
 
 // FillOriginalVfInfo fills the original vf info
 func (s *sriovManager) FillOriginalVfInfo(conf *sriovtypes.NetConf) error {
+	// It is not possible to setup VF config if there is no PF associated with the VF, so check if there is any
+	// config and reject if the master has not been set.
+	if conf.Master == "" {
+		if conf.Vlan != nil || conf.MAC != "" || conf.MinTxRate != nil || conf.MaxTxRate != nil || conf.SpoofChk != "" || conf.LinkState != "" {
+			return fmt.Errorf("trying to setup VF config when PF is not availble")
+		}
+
+		// There is no config trying to be set, so just return
+		return nil
+	}
 	pfLink, err := s.nLink.LinkByName(conf.Master)
 	if err != nil {
 		return fmt.Errorf("failed to lookup master %q: %v", conf.Master, err)
